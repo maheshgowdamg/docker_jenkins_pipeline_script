@@ -1,10 +1,14 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_HUB_USER = 'maheshgowdamg25' 
-        DOCKER_HUB_PASS = 'Mahi@2001'
+        DOCKER_HUB_USER = 'maheshgowdamg25'
+        DOCKER_HUB_REPO = 'docker'
+        IMAGE_NAME = 'nginx'
+        CONTAINER_NAME = 'app'
+        DOCKER_HUB_PASS = 'Mahi@2001'  
     }
-    
+
     stages {
         stage('Install Docker') {
             steps {
@@ -17,52 +21,74 @@ pipeline {
                         sudo systemctl start docker
                         sudo systemctl enable docker
                         sudo usermod -aG docker jenkins
-                        sudo chmod 666 /var/run/docker.sock
                         '''
                     }
                 }
             }
         }
-        
-        stage('Pull Image') {
+
+        stage('Pull Nginx Image') {
             steps {
                 sh 'docker pull nginx'
             }
         }
-        
+
+        stage('Remove Existing Container (if any)') {
+            steps { 
+                script {
+                    def containerExists = sh(script: "docker ps -a --filter 'name=${CONTAINER_NAME}' --format '{{.ID}}'", returnStdout: true).trim()
+                    if (containerExists) {
+                        sh "docker rm -f ${CONTAINER_NAME}"
+                    }
+                }
+            }
+        }
+
         stage('Run Container') {
             steps {
-                sh 'docker run -it -d --name app -p 8000:80 nginx'
+                sh 'docker run -d --name ${CONTAINER_NAME} -p 8000:80 nginx'
             }
         }
-        
-        stage('Create Image Snapshot') {
+
+        stage('Create Snapshot of Running Container') {
             steps {
-                sh 'docker commit app maheshgowdamg25/mock:latest'
+                sh 'docker commit ${CONTAINER_NAME} ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${IMAGE_NAME}'
             }
         }
-        
+
         stage('Login to Docker Hub') {
             steps {
                 sh 'echo "$DOCKER_HUB_PASS" | docker login -u "$DOCKER_HUB_USER" --password-stdin'
             }
         }
-        
-        stage('Push to Docker Hub') {
+
+        stage('Push Image to Docker Hub') {
             steps {
-                sh 'docker push maheshgowdamg25/mock:latest'
+                sh 'docker push ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${IMAGE_NAME}'
             }
         }
     }
-    
+
     post {
         always {
-            sh 'docker rmi nginx || true'
+            script {
+               
+                def imageExists = sh(script: "docker images -q nginx", returnStdout: true).trim()
+                if (imageExists) {
+                    sh "docker rmi -f nginx"
+                }
+            }
         }
-        
+
         success {
-            sh 'docker rm -f app || true'
-            sh 'docker rmi maheshgowdamg25/mock:latest || true'
+            script {
+                
+                def containerExists = sh(script: "docker ps -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
+                if (containerExists) {
+                    sh "docker stop ${CONTAINER_NAME}"
+                    sh "docker rm ${CONTAINER_NAME}"
+                }
+            }
         }
     }
 }
