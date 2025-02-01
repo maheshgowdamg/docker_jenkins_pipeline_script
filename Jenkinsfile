@@ -39,7 +39,7 @@ pipeline{
         }
         stage('tag'){
             steps{
-                sh 'docker tag mahesh maheshgowdamg25/devops'
+                sh 'docker tag mahesh maheshgowdamg25/mock'
             }
         }
 
@@ -51,7 +51,7 @@ pipeline{
 
         stage('push'){
             steps{
-                sh 'docker push maheshgowdamg25/devops'
+                sh 'docker push maheshgowdamg25/mock'
             }
         }
         
