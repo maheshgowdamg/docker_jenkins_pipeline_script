@@ -25,12 +25,12 @@ pipeline{
         }
         stage('run'){
             steps{
-                sh 'docker run -it -d --name container -p 8000:80 nginx'
+                sh 'docker run -it -d --name app -p 8000:80 nginx'
             }
         }
         stage('backup'){
             steps{
-                sh 'docker commit container backup'
+                sh 'docker commit app backup'
             }
         }
         stage('tag'){
@@ -50,7 +50,7 @@ pipeline{
             sh 'docker rmi -f nginx'
         }
         success{
-            sh 'docker rm -f container'
+            sh 'docker rm -f app'
         }
     }   
 }
