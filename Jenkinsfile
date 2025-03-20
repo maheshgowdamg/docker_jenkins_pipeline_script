@@ -40,7 +40,7 @@ pipeline{
         }
         stage('push'){
             steps{
-                 sh 'echo "Mahi@2001" | docker login -u "maheshgowdamg25" --password-stdin'
+                 sh 'echo "password" | docker login -u "maheshgowdamg25" --password-stdin'
                 sh 'docker push maheshgowdamg25/docker'
             }
         }
